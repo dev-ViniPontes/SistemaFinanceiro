@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { Calendar, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 
 const GastosFuturos = ({ data }) => {
@@ -16,13 +16,13 @@ const GastosFuturos = ({ data }) => {
   };
 
   // Função para calcular diferença em meses entre duas datas no formato YYYY-MM
-  const calcularMesesEntreDatas = (dataInicio, dataFim) => {
+  const calcularMesesEntreDatas = useCallback((dataInicio, dataFim) => {
     if (!dataInicio || !dataFim) return 0;
     const [anoInicio, mesInicio] = dataInicio.split('-').map(Number);
     const [anoFim, mesFim] = dataFim.split('-').map(Number);
-    
+
     return (anoFim - anoInicio) * 12 + (mesFim - mesInicio);
-  };
+  }, []);
 
   // Obter lista de meses disponíveis
   const mesesDisponiveis = useMemo(() => {
@@ -45,11 +45,17 @@ const GastosFuturos = ({ data }) => {
           meses.add(mesInicio);
           
           // Adicionar meses das parcelas futuras
-          for (let i = 0; i < item.totalParcelas; i++) {
-            const [ano, mes] = mesInicio.split('-').map(Number);
-            const mesParcela = `${ano}-${String(mes + i).padStart(2, '0')}`;
-            meses.add(mesParcela);
-          }
+            for (let i = 0; i < item.totalParcelas; i++) {
+              const [ano, mes] = mesInicio.split('-').map(Number);
+              let anoParcela = ano;
+              let mesParcela = mes + i;
+              while (mesParcela > 12) {
+                anoParcela++;
+                mesParcela -= 12;
+              }
+              const mesParcelaStr = `${anoParcela}-${String(mesParcela).padStart(2, '0')}`;
+              meses.add(mesParcelaStr);
+            }
         } else if (item.tipo === 'gasto-fixo' && item.mesReferencia) {
           meses.add(item.mesReferencia);
         } else if (item.tipo === 'cartao' && item.mesFechamento) {
@@ -59,13 +65,13 @@ const GastosFuturos = ({ data }) => {
     });
     
     // Converter para array e ordenar
+    console.log(Array.from(meses).sort())
     return Array.from(meses).sort();
   }, [receitas, classificacoes, configuracoes.mesAtual]);
 
   // Calcular dados do mês selecionado
   const dadosMes = useMemo(() => {
     const mesSelecionadoAtual = mesSelecionado;
-    const mesCorrente = configuracoes.mesAtual;
 
     // Agrupar receitas por mês
     const receitasPorMes = {};
@@ -75,18 +81,8 @@ const GastosFuturos = ({ data }) => {
       receitasPorMes[mes] += receita.valor;
     });
 
-    // Obter o último mês com receita para projeção
-    const mesesComReceitas = Object.keys(receitasPorMes).sort().reverse();
-    const ultimoMesComReceita = mesesComReceitas[0];
-    const valorProjetado = ultimoMesComReceita ? receitasPorMes[ultimoMesComReceita] : 0;
-
-    // Total de receitas do mês: atual se passado/presente, projetado se futuro
-    let receitasDoMes;
-    if (mesSelecionadoAtual <= mesCorrente) {
-      receitasDoMes = receitasPorMes[mesSelecionadoAtual] || 0;
-    } else {
-      receitasDoMes = valorProjetado;
-    }
+    // Total de receitas do mês: usa valor cadastrado ou zero se não houver
+    const receitasDoMes = receitasPorMes[mesSelecionadoAtual] || 0;
 
     // Total de gastos do mês
     const gastosDoMes = classificacoes.reduce((total, classif) => {
@@ -122,7 +118,7 @@ const GastosFuturos = ({ data }) => {
       gastosDoMes,
       saldo
     };
-  }, [receitas, classificacoes, mesSelecionado, configuracoes.mesAtual, calcularMesesEntreDatas]);
+  }, [receitas, classificacoes, mesSelecionado, calcularMesesEntreDatas]);
 
   // Gastos por classificação
   const gastosPorClassificacao = useMemo(() => {
