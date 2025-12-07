@@ -116,6 +116,34 @@ const useLocalStorage = () => {
     }));
   };
 
+  const adicionarClassificacao = (nome) => {
+    const novaClassificacao = {
+      id: Date.now(),
+      nome,
+      itens: []
+    };
+    setData(prev => ({
+      ...prev,
+      classificacoes: [...prev.classificacoes, novaClassificacao]
+    }));
+  };
+
+  const editarClassificacao = (id, novoNome) => {
+    setData(prev => ({
+      ...prev,
+      classificacoes: prev.classificacoes.map(classif =>
+        classif.id === id ? { ...classif, nome: novoNome } : classif
+      )
+    }));
+  };
+
+  const excluirClassificacao = (id) => {
+    setData(prev => ({
+      ...prev,
+      classificacoes: prev.classificacoes.filter(classif => classif.id !== id)
+    }));
+  };
+
   return {
     data,
     updateData,
@@ -123,12 +151,15 @@ const useLocalStorage = () => {
     adicionarItemClassificacao,
     editarItemClassificacao,
     excluirItemClassificacao,
-    excluirReceita
+    excluirReceita,
+    adicionarClassificacao,
+    editarClassificacao,
+    excluirClassificacao
   };
 };
 
 function App() {
-  const { data, updateData, adicionarReceita, adicionarItemClassificacao, editarItemClassificacao, excluirItemClassificacao, excluirReceita } = useLocalStorage();
+  const { data, updateData, adicionarReceita, adicionarItemClassificacao, editarItemClassificacao, excluirItemClassificacao, excluirReceita, adicionarClassificacao, editarClassificacao, excluirClassificacao } = useLocalStorage();
   const [telaAtual, setTelaAtual] = useState('visao-geral');
   const [menuMobileAberto, setMenuMobileAberto] = useState(false);
 
@@ -148,11 +179,14 @@ function App() {
         return <AdicionarReceita onAdicionarReceita={adicionarReceita} receitas={data.receitas} onExcluirReceita={excluirReceita} />;
       case 'gerenciar-gastos':
         return (
-          <GerenciarGastos 
-            data={data} 
+          <GerenciarGastos
+            data={data}
             onAdicionarItem={adicionarItemClassificacao}
             onEditarItem={editarItemClassificacao}
             onExcluirItem={excluirItemClassificacao}
+            onAdicionarClassificacao={adicionarClassificacao}
+            onEditarClassificacao={editarClassificacao}
+            onExcluirClassificacao={excluirClassificacao}
           />
         );
       case 'gastos-futuros':

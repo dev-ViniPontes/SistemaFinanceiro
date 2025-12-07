@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { Plus, Car, CreditCard, DollarSign, X, Edit2, Trash2 } from 'lucide-react';
 
-const GerenciarGastos = ({ data, onAdicionarItem, onEditarItem, onExcluirItem }) => {
+const GerenciarGastos = ({ data, onAdicionarItem, onEditarItem, onExcluirItem, onAdicionarClassificacao, onEditarClassificacao, onExcluirClassificacao }) => {
   const { classificacoes, configuracoes } = data;
   const [classificacaoSelecionada, setClassificacaoSelecionada] = useState(null);
   const [modalAberto, setModalAberto] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
-  
+
+  const [modalClassificacoesAberto, setModalClassificacoesAberto] = useState(false);
+  const [classificacaoEditando, setClassificacaoEditando] = useState(null);
+  const [novaNome, setNovaNome] = useState('');
+  const [modalEditarAberto, setModalEditarAberto] = useState(false);
+  const [modalCriarAberto, setModalCriarAberto] = useState(false);
+
   const [formData, setFormData] = useState({
     nome: '',
     tipo: 'parcelado', // parcelado, gasto-fixo, cartao
@@ -233,6 +239,48 @@ const GerenciarGastos = ({ data, onAdicionarItem, onEditarItem, onExcluirItem })
     return tiposItem.find(t => t.id === tipo)?.nome || tipo;
   };
 
+  const abrirModalEditarClassificacao = (classif) => {
+    setClassificacaoEditando(classif);
+    setNovaNome(classif.nome);
+    setModalEditarAberto(true);
+  };
+
+  const fecharModalEditarClassificacao = () => {
+    setModalEditarAberto(false);
+    setClassificacaoEditando(null);
+    setNovaNome('');
+  };
+
+  const handleEditarClassificacao = () => {
+    if (novaNome.trim()) {
+      onEditarClassificacao(classificacaoEditando.id, novaNome.trim());
+      fecharModalEditarClassificacao();
+    }
+  };
+
+  const abrirModalCriarClassificacao = () => {
+    setNovaNome('');
+    setModalCriarAberto(true);
+  };
+
+  const fecharModalCriarClassificacao = () => {
+    setModalCriarAberto(false);
+    setNovaNome('');
+  };
+
+  const handleCriarClassificacao = () => {
+    if (novaNome.trim()) {
+      onAdicionarClassificacao(novaNome.trim());
+      fecharModalCriarClassificacao();
+    }
+  };
+
+  const handleExcluirClassificacao = (id) => {
+    if (window.confirm('Tem certeza que deseja excluir esta classificação? Todos os itens serão perdidos.')) {
+      onExcluirClassificacao(id);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -240,6 +288,14 @@ const GerenciarGastos = ({ data, onAdicionarItem, onEditarItem, onExcluirItem })
         <p className="text-gray-600">
           Organize seus gastos por classificação e controle parcelas automaticamente.
         </p>
+        <div className="mt-4">
+          <button
+            onClick={() => setModalClassificacoesAberto(true)}
+            className="btn btn-secondary"
+          >
+            Gerenciar Classificações
+          </button>
+        </div>
       </div>
 
       {/* Lista de Classificações */}
@@ -513,6 +569,150 @@ const GerenciarGastos = ({ data, onAdicionarItem, onEditarItem, onExcluirItem })
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Gerenciar Classificações */}
+      {modalClassificacoesAberto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-screen overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Gerenciar Classificações</h3>
+                <button
+                  onClick={() => setModalClassificacoesAberto(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <button
+                onClick={abrirModalCriarClassificacao}
+                className="btn btn-primary mb-4 w-full"
+              >
+                Criar Nova Classificação
+              </button>
+
+              <div className="space-y-2">
+                {classificacoes.map((classif) => (
+                  <div key={classif.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium">{classif.nome}</span>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => abrirModalEditarClassificacao(classif)}
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded"
+                        title="Editar classificação"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleExcluirClassificacao(classif.id)}
+                        className="text-red-600 hover:text-red-800 p-1 rounded"
+                        title="Excluir classificação"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Editar Classificação */}
+      {modalEditarAberto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Editar Classificação</h3>
+                <button
+                  onClick={fecharModalEditarClassificacao}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Nome da Classificação</label>
+                  <input
+                    type="text"
+                    value={novaNome}
+                    onChange={(e) => setNovaNome(e.target.value)}
+                    className="input"
+                    placeholder="Digite o nome..."
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={handleEditarClassificacao}
+                    className="btn btn-primary flex-1"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onClick={fecharModalEditarClassificacao}
+                    className="btn btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Criar Classificação */}
+      {modalCriarAberto && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-semibold text-gray-900">Criar Nova Classificação</h3>
+                <button
+                  onClick={fecharModalCriarClassificacao}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Nome da Classificação</label>
+                  <input
+                    type="text"
+                    value={novaNome}
+                    onChange={(e) => setNovaNome(e.target.value)}
+                    className="input"
+                    placeholder="Digite o nome..."
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <button
+                    onClick={handleCriarClassificacao}
+                    className="btn btn-primary flex-1"
+                  >
+                    Criar
+                  </button>
+                  <button
+                    onClick={fecharModalCriarClassificacao}
+                    className="btn btn-secondary"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
